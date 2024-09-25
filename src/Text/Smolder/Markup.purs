@@ -60,9 +60,9 @@ data MarkupM e a
 type Markup e = Free (MarkupM e) Unit
 
 instance bifunctorMarkupM :: Bifunctor MarkupM where
-  bimap l r (Empty a) = Empty (r a)
-  bimap l r (Content t a) = Content t (r a)
-  bimap l r (Doctype t a) = Doctype t (r a)
+  bimap _ r (Empty a) = Empty (r a)
+  bimap _ r (Content t a) = Content t (r a)
+  bimap _ r (Doctype t a) = Doctype t (r a)
   bimap l r (Element ns el kids attrs events a) =
     Element ns el (mapEvent l kids) attrs (map l <$> events) (r a)
 
