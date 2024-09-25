@@ -17,6 +17,7 @@ package:
     main: Test.Main
     dependencies:
       - "test-unit"
+      - debug
 workspace:
   packageSet:
     registry: 60.0.1

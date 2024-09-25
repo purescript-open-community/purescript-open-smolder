@@ -1,7 +1,13 @@
 module Text.Smolder.Renderer.String
   ( render
+  , render'
+  , renderWithOptions
+  , noPP
+  , twoSpacesPP
   ) where
 
+import Debug
+import DebugInspect
 import Prelude
 
 import Control.Comonad (extend)
@@ -9,16 +15,19 @@ import Control.Comonad.Cofree (Cofree, head, mkCofree, tail, (:<))
 import Control.Monad.Free (foldFree)
 import Control.Monad.State (State, evalState, execState, get, put, state)
 import Data.Array ((..))
+import Data.Array as Array
 import Data.CatList (CatList)
+import Data.CatList as CatList
 import Data.Char (toCharCode)
-import Data.Foldable (elem, fold, foldr)
-import Data.Map (Map, lookup, fromFoldable)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe)
+import Data.Foldable (elem, fold, foldl, foldr)
+import Data.Map (Map)
+import Data.Map as Map
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Set (Set)
 import Data.Set as Set
-import Data.String (length)
+import Data.String as String
 import Data.String.CodeUnits (fromCharArray, toCharArray)
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested ((/\))
 import JSURI (encodeURI)
 import Partial (crashWith)
@@ -26,7 +35,7 @@ import Partial.Unsafe (unsafePartial)
 import Text.Smolder.Markup (Attr(..), Markup, MarkupM(..), NS(..))
 
 escapeMap :: Map Char String
-escapeMap = fromFoldable
+escapeMap = Map.fromFoldable
   [ '&' /\ "&amp;"
   , '<' /\ "&lt;"
   , '>' /\ "&gt;"
@@ -36,7 +45,7 @@ escapeMap = fromFoldable
   ]
 
 escapeMIMEMap :: Map Char String
-escapeMIMEMap = fromFoldable
+escapeMIMEMap = Map.fromFoldable
   [ '&' /\ "&amp;"
   , '<' /\ "&lt;"
   , '"' /\ "&quot;"
@@ -139,7 +148,7 @@ escape m = fromStream <<< extend escapeS <<< toStream
       case head w of
         '&' | startsEntity (tail w) -> "&"
             | otherwise             -> "&amp;"
-        c                           -> fromMaybe (fromCharArray [c]) $ lookup c m
+        c                           -> fromMaybe (fromCharArray [c]) $ Map.lookup c m
 
 escapeAttrValue :: String -> String -> String -> String
 escapeAttrValue tag key value
@@ -160,18 +169,72 @@ showAttrs tag = map showAttr >>> fold
       <> escapeAttrValue tag key value
       <> "\""
 
-renderItem :: ∀ e. MarkupM e ~> State String
-renderItem (Element ns name children attrs _ rest) =
-  let c = render children
-      b = "<" <> name <> showAttrs name attrs <>
-          (if length c > 0 || (ns == HTMLns && not Set.member name voidElements)
-           then ">" <> c <> "</" <> name <> ">"
-           else "/>")
+renderItem :: ∀ e. PPOptions -> MarkupM e ~> State (CatList String)
+renderItem ppoptions (Element ns name children attrs _ rest) =
+  let indentedOpen = indent ppoptions.depth ppoptions.indentStr ("<" <> name <> showAttrs name attrs)
+      c = renderWithOptions (ppoptions { depth = ppoptions.depth + 1 }) children
+      hasChildren = CatList.length c > 0 || (ns == HTMLns && not (Set.member name voidElements))
+      b = if hasChildren
+           then
+            let
+              end = "</" <> name <> ">"
+            in if CatList.length c > 0
+              then CatList.singleton (indentedOpen <> ">") <> c <> CatList.singleton (indent ppoptions.depth ppoptions.indentStr end)
+              else CatList.singleton (indentedOpen <> ">" <> end)
+           else CatList.singleton (indentedOpen <> "/>")
   in state \s → Tuple rest $ append s b
-renderItem (Content text rest) = state \s → Tuple rest $ append s $ escape escapeMap text
-renderItem (Doctype text rest) = state \s → Tuple rest $ append s $ "<!DOCTYPE " <> text <> ">"
-renderItem (Empty rest) = pure rest
+renderItem ppoptions (Content text rest) = state \s →
+  let indentedText =
+        if String.length ppoptions.indentStr > 0
+          then
+            if String.length text > 0
+              then CatList.singleton $ indent ppoptions.depth ppoptions.indentStr (escape escapeMap text)
+              else CatList.empty
+          else CatList.singleton $ escape escapeMap text
+  in Tuple rest $ append s indentedText
+renderItem ppoptions (Doctype text rest) = state \s →
+  let indentedDoctype = indent ppoptions.depth ppoptions.indentStr ("<!DOCTYPE " <> text <> ">")
+  in Tuple rest $ append s (CatList.singleton indentedDoctype)
+renderItem _ (Empty rest) = pure rest
 
--- | Render markup as an HTML string.
+-- | Render markup as an HTML string with pretty printing options.
+renderWithOptions :: ∀ e. PPOptions -> Markup e → CatList String
+renderWithOptions ppoptions f = execState (foldFree (renderItem ppoptions) f) CatList.empty
+
+-- | Render markup as an HTML string with no pretty printing.
+render' :: ∀ e. PPOptions -> Markup e → String
+render' ppoptions markup = String.joinWith ppoptions.newline $ Array.fromFoldable $ renderWithOptions ppoptions markup
+-- render' ppoptions markup =
+--   let catList = renderWithOptions ppoptions markup
+--       -- Use foldl to accumulate the string, without adding a newline to the last element
+--       accumulatedString = foldl (\(Tuple acc isFirst) line ->
+--                                   let newAcc = acc <> (if isFirst then "" else ppoptions.newline) <> line
+--                                   in (Tuple newAcc false)) (Tuple "" true) catList
+--   in fst accumulatedString
+
 render :: ∀ e. Markup e → String
-render f = execState (foldFree renderItem f) ""
+render = render' noPP
+
+type PPOptions =
+  { indentStr :: String
+  , newline :: String
+  , depth :: Int -- Tracks the current depth for indentation
+  }
+
+-- Define a version of PPOptions without pretty printing
+noPP :: PPOptions
+noPP = { indentStr: "", newline: "", depth: 0 }
+
+-- Define a version of PPOptions with two spaces for indentation and newline
+twoSpacesPP :: PPOptions
+twoSpacesPP = { indentStr: "  ", newline: "\n", depth: 0 }
+
+indent :: Int -> String -> String -> String
+indent n indentation s = indentWithoutTrim n indentation (String.trim s)
+
+indentWithoutTrim :: Int -> String -> String -> String
+indentWithoutTrim 0 _ s = s
+indentWithoutTrim _ _ "" = ""
+indentWithoutTrim n indentation s = prefix <> s
+  where
+    prefix = String.joinWith "" (Array.replicate n indentation)

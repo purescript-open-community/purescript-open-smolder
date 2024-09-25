@@ -2,7 +2,12 @@
 /node_modules/
 /output/
 /.tern-port
+<<<<<<< HEAD
 *.tix
 /.psc-package
 /.pulp-cache
 .psc-ide-port
+=======
+.psci
+.psci_modules/
+>>>>>>> MichaelXavier/pretty-print
