@@ -9,10 +9,9 @@ import Test.Unit (suite, test)
 import Test.Unit.Assert (equal)
 import Test.Unit.Main (runTest)
 import Text.Smolder.HTML (body, div, form, h1, head, html, img, link, meta, p, script, style, title)
-import Text.Smolder.HTML.Attributes (action, charset, content, href, httpEquiv, lang, name, rel, src, type', className)
+import Text.Smolder.HTML.Attributes (action, charset, content, href, httpEquiv, lang, name, rel, src, type')
 import Text.Smolder.Markup (Markup, doctype, empty, on, safe, text, (!), (#!))
-import Text.Smolder.Renderer.String (render, render', noPP, twoSpacesPP)
-import Debug
+import Text.Smolder.Renderer.String (render, render', twoSpacesPP)
 
 doc :: forall a. Markup (a -> Effect Unit)
 doc = do

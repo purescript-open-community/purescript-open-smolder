@@ -6,8 +6,6 @@ module Text.Smolder.Renderer.String
   , twoSpacesPP
   ) where
 
-import Debug
-import DebugInspect
 import Prelude
 
 import Control.Comonad (extend)

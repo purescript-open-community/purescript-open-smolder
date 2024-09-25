@@ -1,23 +1,28 @@
 package:
   name: open-smolder
+  publish:
+    version: 12.0.0
+    license: "LGPL-3.0+"
+    location:
+      githubOwner: purescript-open-community
+      githubRepo: purescript-open-smolder
   dependencies:
-    - "bifunctors"
-    - "catenable-lists"
-    - "console"
-    - "effect"
-    - "free"
-    - "ordered-collections"
-    - "prelude"
-    - "psci-support"
-    - "strings"
-    - "transformers"
-    - "tuples"
-    - "js-uri"
+    - bifunctors
+    - catenable-lists
+    - console
+    - effect
+    - free
+    - ordered-collections
+    - prelude
+    - psci-support
+    - strings
+    - transformers
+    - tuples
+    - js-uri
   test:
     main: Test.Main
     dependencies:
-      - "test-unit"
-      - debug
+      - test-unit
 workspace:
   packageSet:
     registry: 60.0.1
