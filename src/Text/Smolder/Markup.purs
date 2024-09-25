@@ -105,9 +105,9 @@ attribute key value = Attribute (pure $ Attr key value)
 safe :: Attribute → Attribute
 safe (Attribute attrs) = Attribute $ map safeAttr attrs
   where
-    safeAttr :: Attr → Attr
-    safeAttr attr@(SafeAttr _ _) = attr
-    safeAttr (Attr key val) = SafeAttr key val
+  safeAttr :: Attr → Attr
+  safeAttr attr@(SafeAttr _ _) = attr
+  safeAttr (Attr key val) = SafeAttr key val
 
 class Attributable a where
   -- | Add an attribute to a markup node.
@@ -124,9 +124,9 @@ infixl 4 optionalWith as !?
 instance attributableMarkup :: Attributable (Free (MarkupM e) Unit) where
   with f (Attribute attr) = hoistFree withF f
     where
-      withF :: ∀ a. MarkupM e a → MarkupM e a
-      withF (Element ns el kids attrs events rest) = Element ns el kids (attrs <> attr) events rest
-      withF el = el
+    withF :: ∀ a. MarkupM e a → MarkupM e a
+    withF (Element ns el kids attrs events rest) = Element ns el kids (attrs <> attr) events rest
+    withF el = el
 
 instance attributableMarkupF :: Attributable (Free (MarkupM e) Unit → Free (MarkupM e) Unit) where
   with k xs m = k m `with` xs
@@ -150,10 +150,10 @@ on name handler = EventHandlers (pure $ EventHandler name handler)
 instance eventableMarkup :: Eventable e (Free (MarkupM e) Unit) where
   withEvent f (EventHandlers es) = hoistFree withEventF f
     where
-      withEventF :: ∀ a. MarkupM e a → MarkupM e a
-      withEventF (Element ns el kids attrs events rest) =
-        Element ns el kids attrs (events <> es) rest
-      withEventF xs = xs
+    withEventF :: ∀ a. MarkupM e a → MarkupM e a
+    withEventF (Element ns el kids attrs events rest) =
+      Element ns el kids attrs (events <> es) rest
+    withEventF xs = xs
 
 instance eventableMarkupMF :: Eventable e (Free (MarkupM e) Unit → Free (MarkupM e) Unit) where
   withEvent k xs m = k m `withEvent` xs

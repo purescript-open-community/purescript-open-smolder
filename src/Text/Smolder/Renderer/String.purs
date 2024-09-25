@@ -17,7 +17,7 @@ import Data.Array as Array
 import Data.CatList (CatList)
 import Data.CatList as CatList
 import Data.Char (toCharCode)
-import Data.Foldable (elem, fold, foldl, foldr)
+import Data.Foldable (elem, fold, foldr)
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
@@ -25,7 +25,7 @@ import Data.Set (Set)
 import Data.Set as Set
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray, toCharArray)
-import Data.Tuple (Tuple(..), fst)
+import Data.Tuple (Tuple(..))
 import Data.Tuple.Nested ((/\))
 import JSURI (encodeURI)
 import Partial (crashWith)
@@ -111,88 +111,94 @@ toStream s = foldr (\c t -> c :< (Just t)) (mkCofree '\x0' Nothing) cs
 fromStream :: Cofree Maybe String -> String
 fromStream = go ""
   where
-    go :: String -> Cofree Maybe String -> String
-    go result cof =
-      case (head cof), (tail cof) of
-        _, Nothing -> result
-        s, (Just cof') -> go (result <> s) cof'
+  go :: String -> Cofree Maybe String -> String
+  go result cof =
+    case (head cof), (tail cof) of
+      _, Nothing -> result
+      s, (Just cof') -> go (result <> s) cof'
 
 escape :: Map Char String -> String -> String
 escape m = fromStream <<< extend escapeS <<< toStream
   where
-    startsEntity :: Maybe (Cofree Maybe Char) -> Boolean
-    startsEntity (Just w) =
-              case head w, tail w of
-                '#',  Just w' -> checkTail (48..57) w'
-                '#',  Nothing -> false
-                _,    _       -> checkTail (65..90 <> 97..122) w
-    startsEntity Nothing = false
+  startsEntity :: Maybe (Cofree Maybe Char) -> Boolean
+  startsEntity (Just w) =
+    case head w, tail w of
+      '#', Just w' -> checkTail (48 .. 57) w'
+      '#', Nothing -> false
+      _, _ -> checkTail (65 .. 90 <> 97 .. 122) w
+  startsEntity Nothing = false
 
-    checkTail :: Array Int -> Cofree Maybe Char -> Boolean
-    checkTail allowed = flip evalState false <<< checkTail'
-      where
-        -- keep if `;` is allowed in `State` monad
-        checkTail' :: Cofree Maybe Char -> State Boolean Boolean
-        checkTail' w =
-          case toCharCode $ head w of
-            cc  | cc `elem` allowed -> do
-                    put true
-                    fromMaybe (pure false) $ checkTail' <$> tail w
-                | cc == 59 -> get
-                | otherwise -> pure false
+  checkTail :: Array Int -> Cofree Maybe Char -> Boolean
+  checkTail allowed = flip evalState false <<< checkTail'
+    where
+    -- keep if `;` is allowed in `State` monad
+    checkTail' :: Cofree Maybe Char -> State Boolean Boolean
+    checkTail' w =
+      case toCharCode $ head w of
+        cc
+          | cc `elem` allowed -> do
+              put true
+              fromMaybe (pure false) $ checkTail' <$> tail w
+          | cc == 59 -> get
+          | otherwise -> pure false
 
-    escapeS :: Cofree Maybe Char -> String
-    escapeS w =
-      case head w of
-        '&' | startsEntity (tail w) -> "&"
-            | otherwise             -> "&amp;"
-        c                           -> fromMaybe (fromCharArray [c]) $ Map.lookup c m
+  escapeS :: Cofree Maybe Char -> String
+  escapeS w =
+    case head w of
+      '&'
+        | startsEntity (tail w) -> "&"
+        | otherwise -> "&amp;"
+      c -> fromMaybe (fromCharArray [ c ]) $ Map.lookup c m
 
 escapeAttrValue :: String -> String -> String -> String
 escapeAttrValue tag key value
   | isURLAttr tag key =
-    case encodeURI value of
-         Nothing -> unsafePartial $ crashWith "Text.Smolder.Renderer.String.escapeAttrValue: cannot encode URL"
-         Just x -> x
-  | isMIMEAttr tag key  = escape escapeMIMEMap value
-  | otherwise           = escape escapeMap value
+      case encodeURI value of
+        Nothing -> unsafePartial $ crashWith "Text.Smolder.Renderer.String.escapeAttrValue: cannot encode URL"
+        Just x -> x
+  | isMIMEAttr tag key = escape escapeMIMEMap value
+  | otherwise = escape escapeMap value
 
 showAttrs :: String -> CatList Attr → String
 showAttrs tag = map showAttr >>> fold
   where
-    showAttr (SafeAttr key value) = " " <> key <> "=\"" <> value <> "\""
-    showAttr (Attr key value) = " "
-      <> key
-      <> "=\""
-      <> escapeAttrValue tag key value
-      <> "\""
+  showAttr (SafeAttr key value) = " " <> key <> "=\"" <> value <> "\""
+  showAttr (Attr key value) = " "
+    <> key
+    <> "=\""
+    <> escapeAttrValue tag key value
+    <> "\""
 
 renderItem :: ∀ e. PPOptions -> MarkupM e ~> State (CatList String)
 renderItem ppoptions (Element ns name children attrs _ rest) =
-  let indentedOpen = indent ppoptions.depth ppoptions.indentStr ("<" <> name <> showAttrs name attrs)
-      c = renderWithOptions (ppoptions { depth = ppoptions.depth + 1 }) children
-      hasChildren = CatList.length c > 0 || (ns == HTMLns && not (Set.member name voidElements))
-      b = if hasChildren
-           then
-            let
-              end = "</" <> name <> ">"
-            in if CatList.length c > 0
-              then CatList.singleton (indentedOpen <> ">") <> c <> CatList.singleton (indent ppoptions.depth ppoptions.indentStr end)
-              else CatList.singleton (indentedOpen <> ">" <> end)
-           else CatList.singleton (indentedOpen <> "/>")
-  in state \s → Tuple rest $ append s b
+  let
+    indentedOpen = indent ppoptions.depth ppoptions.indentStr ("<" <> name <> showAttrs name attrs)
+    c = renderWithOptions (ppoptions { depth = ppoptions.depth + 1 }) children
+    hasChildren = CatList.length c > 0 || (ns == HTMLns && not (Set.member name voidElements))
+    b =
+      if hasChildren then
+        let
+          end = "</" <> name <> ">"
+        in
+          if CatList.length c > 0 then CatList.singleton (indentedOpen <> ">") <> c <> CatList.singleton (indent ppoptions.depth ppoptions.indentStr end)
+          else CatList.singleton (indentedOpen <> ">" <> end)
+      else CatList.singleton (indentedOpen <> "/>")
+  in
+    state \s → Tuple rest $ append s b
 renderItem ppoptions (Content text rest) = state \s →
-  let indentedText =
-        if String.length ppoptions.indentStr > 0
-          then
-            if String.length text > 0
-              then CatList.singleton $ indent ppoptions.depth ppoptions.indentStr (escape escapeMap text)
-              else CatList.empty
-          else CatList.singleton $ escape escapeMap text
-  in Tuple rest $ append s indentedText
+  let
+    indentedText =
+      if String.length ppoptions.indentStr > 0 then
+        if String.length text > 0 then CatList.singleton $ indent ppoptions.depth ppoptions.indentStr (escape escapeMap text)
+        else CatList.empty
+      else CatList.singleton $ escape escapeMap text
+  in
+    Tuple rest $ append s indentedText
 renderItem ppoptions (Doctype text rest) = state \s →
-  let indentedDoctype = indent ppoptions.depth ppoptions.indentStr ("<!DOCTYPE " <> text <> ">")
-  in Tuple rest $ append s (CatList.singleton indentedDoctype)
+  let
+    indentedDoctype = indent ppoptions.depth ppoptions.indentStr ("<!DOCTYPE " <> text <> ">")
+  in
+    Tuple rest $ append s (CatList.singleton indentedDoctype)
 renderItem _ (Empty rest) = pure rest
 
 -- | Render markup as an HTML string with pretty printing options.
@@ -202,6 +208,7 @@ renderWithOptions ppoptions f = execState (foldFree (renderItem ppoptions) f) Ca
 -- | Render markup as an HTML string with no pretty printing.
 render' :: ∀ e. PPOptions -> Markup e → String
 render' ppoptions markup = String.joinWith ppoptions.newline $ Array.fromFoldable $ renderWithOptions ppoptions markup
+
 -- render' ppoptions markup =
 --   let catList = renderWithOptions ppoptions markup
 --       -- Use foldl to accumulate the string, without adding a newline to the last element
@@ -235,4 +242,4 @@ indentWithoutTrim 0 _ s = s
 indentWithoutTrim _ _ "" = ""
 indentWithoutTrim n indentation s = prefix <> s
   where
-    prefix = String.joinWith "" (Array.replicate n indentation)
+  prefix = String.joinWith "" (Array.replicate n indentation)
