@@ -1,0 +1,23 @@
+package:
+  name: open-smolder
+  dependencies:
+    - "bifunctors"
+    - "catenable-lists"
+    - "console"
+    - "effect"
+    - "free"
+    - "ordered-collections"
+    - "prelude"
+    - "psci-support"
+    - "strings"
+    - "transformers"
+    - "tuples"
+    - "js-uri"
+  test:
+    main: Test.Main
+    dependencies:
+      - "test-unit"
+workspace:
+  packageSet:
+    registry: 60.0.1
+  extraPackages: {}
