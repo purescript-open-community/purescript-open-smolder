@@ -25,6 +25,8 @@ package:
     main: Test.Main
     dependencies:
       - test-unit
+      - console
+      - effect
 workspace:
   packageSet:
     registry: 60.0.1
