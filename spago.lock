@@ -3,11 +3,16 @@ workspace:
     open-smolder:
       path: ./
       dependencies:
+        - arrays
         - bifunctors
         - catenable-lists
+        - control
+        - foldable-traversable
         - free
         - js-uri
+        - maybe
         - ordered-collections
+        - partial
         - prelude
         - strings
         - transformers

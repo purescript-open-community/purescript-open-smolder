@@ -7,11 +7,16 @@ package:
       githubOwner: purescript-open-community
       githubRepo: purescript-open-smolder
   dependencies:
+    - arrays
     - bifunctors
     - catenable-lists
+    - control
+    - foldable-traversable
     - free
     - js-uri
+    - maybe
     - ordered-collections
+    - partial
     - prelude
     - strings
     - transformers
