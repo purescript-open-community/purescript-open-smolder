@@ -9,16 +9,13 @@ package:
   dependencies:
     - bifunctors
     - catenable-lists
-    - console
-    - effect
     - free
+    - js-uri
     - ordered-collections
     - prelude
-    - psci-support
     - strings
     - transformers
     - tuples
-    - js-uri
   test:
     main: Test.Main
     dependencies:
