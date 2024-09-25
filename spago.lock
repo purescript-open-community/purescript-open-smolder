@@ -3,20 +3,20 @@ workspace:
     open-smolder:
       path: ./
       dependencies:
-        - arrays
-        - bifunctors
-        - catenable-lists
-        - control
-        - foldable-traversable
-        - free
-        - js-uri
-        - maybe
-        - ordered-collections
-        - partial
-        - prelude
-        - strings
-        - transformers
-        - tuples
+        - arrays: ">=7.3.0 <8.0.0"
+        - bifunctors: ">=6.0.0 <7.0.0"
+        - catenable-lists: ">=7.0.0 <8.0.0"
+        - control: ">=6.0.0 <7.0.0"
+        - foldable-traversable: ">=6.0.0 <7.0.0"
+        - free: ">=7.1.0 <8.0.0"
+        - js-uri: ">=3.1.0 <4.0.0"
+        - maybe: ">=6.0.0 <7.0.0"
+        - ordered-collections: ">=3.2.0 <4.0.0"
+        - partial: ">=4.0.0 <5.0.0"
+        - prelude: ">=6.0.1 <7.0.0"
+        - strings: ">=6.0.1 <7.0.0"
+        - transformers: ">=6.1.0 <7.0.0"
+        - tuples: ">=7.0.0 <8.0.0"
       test_dependencies:
         - test-unit
       build_plan:
