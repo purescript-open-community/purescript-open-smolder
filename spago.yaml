@@ -29,5 +29,5 @@ package:
       - effect
 workspace:
   packageSet:
-    registry: 60.0.1
+    registry: 60.2.1
   extraPackages: {}
